@@ -42,7 +42,7 @@ router.post('/login', async (req, res, next) => {
         }
 
         // Check password
-        const isMatch = await user.match.Password(password);
+        const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
             return res.status(401).json({

@@ -1,39 +1,48 @@
+const cloudinary = require('../config/cloudinary');
 const sharp = require('sharp');
-const fs = require('fs');
-const path = require('path');
+const { Readable } = require('stream');
 
 /**
- * Optimize and save image locally
+ * Optimize and upload image to Cloudinary
  * @param {Buffer} buffer - Image buffer from multer
- * @param {string} folder - Subfolder name (e.g., 'news-articles', 'logos')
- * @returns {Promise<string>} - Local file URL
+ * @param {string} folder - Cloudinary folder name
+ * @returns {Promise<string>} - Cloudinary secure URL
  */
 const optimizeAndSaveLocally = async (buffer, folder = 'articles') => {
     try {
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(__dirname, '../../uploads', folder);
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        // Generate unique filename
-        const filename = `image-${Date.now()}-${Math.round(Math.random() * 1E9)}.webp`;
-        const filepath = path.join(uploadsDir, filename);
-
-        // Optimize image with sharp - convert to WebP
-        await sharp(buffer)
+        // 1. Optimize with Sharp first (optional, but good for consistent resizing before upload)
+        const optimizedBuffer = await sharp(buffer)
             .resize(1200, 800, {
                 fit: 'inside',
                 withoutEnlargement: true,
             })
             .webp({ quality: 85 })
-            .toFile(filepath);
+            .toBuffer();
 
-        // Return URL path (served by Express static middleware)
-        return `/uploads/${folder}/${filename}`;
+        // 2. Upload to Cloudinary
+        return new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    folder: `news-project/${folder}`, // Organized in a main folder
+                    resource_type: 'image',
+                    format: 'webp', // Ensure it's stored as webp
+                },
+                (error, result) => {
+                    if (error) {
+                        console.error('Cloudinary Upload Error:', error);
+                        return reject(new Error('Cloudinary upload failed'));
+                    }
+                    resolve(result.secure_url);
+                }
+            );
+
+            // Convert buffer to stream and pipe to Cloudinary
+            Readable.from(optimizedBuffer).pipe(uploadStream);
+        });
+
     } catch (error) {
-        console.error('Error optimizing/saving image:', error);
-        throw new Error('Image optimization failed');
+        console.error('Error optimizing/uploading image:', error);
+        throw new Error('Image handling failed');
     }
 };
 

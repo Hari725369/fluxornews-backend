@@ -30,6 +30,11 @@ router.post('/login', async (req, res, next) => {
 
         // Check if user is suspended
         if (user.status === 'suspended') {
+            if (process.env.NODE_ENV === 'production') {
+                res.setHeader('Location', `${process.env.FRONTEND_URL}/admin/login?error=auth_failed`);
+            } else {
+                res.setHeader('Location', `http://localhost:3000/admin/login?error=auth_failed`);
+            }
             return res.status(403).json({
                 success: false,
                 message: 'Account suspended. Contact administrator.',
@@ -37,7 +42,7 @@ router.post('/login', async (req, res, next) => {
         }
 
         // Check password
-        const isMatch = await user.matchPassword(password);
+        const isMatch = await user.match.Password(password);
 
         if (!isMatch) {
             return res.status(401).json({

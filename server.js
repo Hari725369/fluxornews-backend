@@ -41,8 +41,14 @@ app.use(helmet({
 }));
 
 // CORS Configuration
+// CORS Configuration
 const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL]
+    ? [
+        process.env.FRONTEND_URL,
+        'https://www.fluxornews.com',
+        'https://fluxornews.com',
+        'https://fluxornews-frontend-c6fg.vercel.app'
+    ].filter(Boolean)
     : [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
@@ -54,7 +60,16 @@ app.use(cors({
         // Allow requests with no origin (mobile apps, curl, etc.)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        // Check if origin is allowed (handling potential trailing slashes)
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (!allowed) return false;
+            // Normalize URLs by removing trailing slash for comparison
+            const normalizedAllowed = allowed.replace(/\/$/, '');
+            const normalizedOrigin = origin.replace(/\/$/, '');
+            return normalizedAllowed === normalizedOrigin;
+        });
+
+        if (isAllowed) {
             callback(null, true);
         } else {
             logger.warn(`Blocked CORS request from origin: ${origin}`);

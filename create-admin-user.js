@@ -6,21 +6,13 @@ const AdminUser = require('./src/models/AdminUser');
 
 async function createAdminUser() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('✅ Connected to MongoDB');
+        console.log('🔄 Checking for Admin user...');
 
         // Check if admin exists in AdminUser collection
         const existingAdmin = await AdminUser.findOne({ email: 'admin@fluxornews.com' });
 
         if (existingAdmin) {
-            console.log('⚠️  Admin user already exists in AdminUser collection!');
-            console.log('================================');
-            console.log('Email: admin@fluxornews.com');
-            console.log('Password: admin123');
-            console.log('Role:', existingAdmin.role);
-            console.log('Status:', existingAdmin.status);
-            console.log('================================');
-            await mongoose.connection.close();
+            console.log('✅ Admin user verified (admin@fluxornews.com)');
             return;
         }
 
@@ -36,21 +28,10 @@ async function createAdminUser() {
 
         await admin.save();
 
-        console.log('✅ Admin user created successfully in AdminUser collection!');
-        console.log('================================');
-        console.log('Email: admin@fluxornews.com');
-        console.log('Password: admin123');
-        console.log('Role: superadmin');
-        console.log('Status: active');
-        console.log('================================');
-        console.log('You can now login at: http://localhost:3000/admin/login');
-
-        await mongoose.connection.close();
+        console.log('✅ Admin user created successfully: admin@fluxornews.com / admin123');
     } catch (error) {
-        console.error('❌ Error:', error.message);
-        console.error(error);
-        process.exit(1);
+        console.error('❌ Error creating admin user:', error.message);
     }
 }
 
-createAdminUser();
+module.exports = createAdminUser;

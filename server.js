@@ -25,9 +25,12 @@ const subscriberRoutes = require('./src/routes/subscribers');
 // Initialize app
 const app = express();
 
+const createAdminUser = require('./create-admin-user');
+
 // Connect to database and start lifecycle jobs
 if (process.env.NODE_ENV !== 'test') {
-    connectDB().then(() => {
+    connectDB().then(async () => {
+        await createAdminUser();
         startLifecycleJobs();
     });
 }

@@ -107,18 +107,32 @@ const limiter = rateLimit({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
-// Apply rate limiting to all routes
-app.use('/api/', limiter);
+// In development, exclude auth routes from general rate limiting
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/', (req, res, next) => {
+        // Skip rate limiting for auth endpoints in development
+        if (req.path.startsWith('/auth/login') || req.path.startsWith('/auth/register') || req.path.startsWith('/auth/dev-login')) {
+            return next();
+        }
+        return limiter(req, res, next);
+    });
+} else {
+    // In production, apply rate limiting to all routes
+    app.use('/api/', limiter);
+}
 
-// Stricter rate limit for auth routes
+// Stricter rate limit for auth routes (production only)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // Limit each IP to 5 requests per windowMs
     message: 'Too many authentication attempts, please try again later.',
 });
 
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+// Only apply auth rate limiting in production
+if (process.env.NODE_ENV === 'production') {
+    app.use('/api/auth/login', authLimiter);
+    app.use('/api/auth/register', authLimiter);
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

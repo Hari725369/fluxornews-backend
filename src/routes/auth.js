@@ -9,9 +9,11 @@ const { protect, generateToken } = require('../middleware/auth');
 router.post('/login', async (req, res, next) => {
     try {
         const { email, password } = req.body;
+        console.log(`[Auth] Login attempt for: ${email}`);
 
         // Validate input
         if (!email || !password) {
+            console.log('[Auth] Missing email or password');
             return res.status(400).json({
                 success: false,
                 message: 'Please provide email and password',
@@ -22,14 +24,18 @@ router.post('/login', async (req, res, next) => {
         const user = await AdminUser.findOne({ email }).select('+password');
 
         if (!user) {
+            console.log(`[Auth] User not found: ${email}`);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials',
             });
         }
 
+        console.log(`[Auth] User found: ${user.email}, Role: ${user.role}, Status: ${user.status}`);
+
         // Check if user is suspended
         if (user.status === 'suspended') {
+            console.log(`[Auth] Account suspended: ${email}`);
             if (process.env.NODE_ENV === 'production') {
                 res.setHeader('Location', `${process.env.FRONTEND_URL}/admin/login?error=auth_failed`);
             } else {
@@ -43,8 +49,10 @@ router.post('/login', async (req, res, next) => {
 
         // Check password
         const isMatch = await user.matchPassword(password);
+        console.log(`[Auth] Password match: ${isMatch}`);
 
         if (!isMatch) {
+            console.log(`[Auth] Invalid password for: ${email}`);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials',
@@ -55,11 +63,14 @@ router.post('/login', async (req, res, next) => {
         user.lastLogin = new Date();
         await user.save();
 
+        const token = generateToken(user._id);
+        console.log(`[Auth] ✅ Login successful for: ${email}, Token generated`);
+
         // Return token and user data (matching frontend AuthResponse type)
         res.json({
             success: true,
             data: {
-                token: generateToken(user._id),
+                token: token,
                 user: {
                     _id: user._id,
                     name: user.name,
@@ -69,6 +80,7 @@ router.post('/login', async (req, res, next) => {
             },
         });
     } catch (error) {
+        console.error('[Auth] Login error:', error);
         next(error);
     }
 });
@@ -172,6 +184,37 @@ router.put('/password', protect, async (req, res, next) => {
         res.json({
             success: true,
             message: 'Password updated successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   POST /api/auth/dev-login
+// @desc    Dev only - login as first admin without password
+// @access  Public (Dev only)
+router.post('/dev-login', async (req, res, next) => {
+    try {
+        if (process.env.NODE_ENV !== 'development') {
+            return res.status(403).json({ success: false, message: 'Not available in production' });
+        }
+
+        const user = await AdminUser.findOne({ role: 'superadmin' });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'No admin user found' });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                token: generateToken(user._id),
+                user: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                },
+            },
         });
     } catch (error) {
         next(error);

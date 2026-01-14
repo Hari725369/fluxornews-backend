@@ -18,6 +18,10 @@ const siteConfigSchema = new mongoose.Schema({
     },
     // Features Toggles
     features: {
+        showLatestNews: {
+            type: Boolean,
+            default: true
+        },
         enableEmailSubscribe: {
             type: Boolean,
             default: true

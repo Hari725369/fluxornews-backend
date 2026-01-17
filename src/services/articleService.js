@@ -72,7 +72,10 @@ class ArticleService {
         if (params.lifecycleStage) query.lifecycleStage = params.lifecycleStage;
         if (params.author) query.author = params.author;
         if (params.category) query.category = params.category;
-        if (params.tag) query.tags = params.tag; // Note: params.tag vs query.tags
+        if (params.tag) {
+            // Case-insensitive exact match for the tag
+            query.tags = { $regex: new RegExp(`^${params.tag}$`, 'i') };
+        }
         if (params.isTrending) query.isTrending = params.isTrending === 'true';
         if (params.isFeatured) query.isFeatured = params.isFeatured === 'true';
 

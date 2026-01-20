@@ -145,16 +145,22 @@ const articleSchema = new mongoose.Schema({
     },
 });
 
-// Auto-generate slug from title
+// Auto-generate slug from title if not provided
 articleSchema.pre('save', async function () {
-    if (this.isModified('title')) {
+    // Only generate slug if not manually provided
+    if (!this.slug && this.isModified('title')) {
         this.slug = this.title
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/(^-|-$)/g, '');
+    }
 
-        // Add timestamp to ensure uniqueness
-        this.slug += `-${Date.now()}`;
+    // If slug was manually set, sanitize it
+    if (this.isModified('slug') && this.slug) {
+        this.slug = this.slug
+            .toLowerCase()
+            .replace(/[^a-z0-9-]+/g, '-')
+            .replace(/(^-|-$)/g, '');
     }
 
     // Update updatedAt

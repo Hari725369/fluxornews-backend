@@ -163,6 +163,20 @@ articleSchema.pre('save', async function () {
             .replace(/(^-|-$)/g, '');
     }
 
+    // Ensure slug uniqueness
+    if (this.isModified('slug')) {
+        const baseSlug = this.slug;
+        let slug = baseSlug;
+        let counter = 1;
+
+        // Loop until we find a unique slug
+        while (await this.constructor.findOne({ slug, _id: { $ne: this._id } })) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+        }
+        this.slug = slug;
+    }
+
     // Update updatedAt
     this.updatedAt = Date.now();
 

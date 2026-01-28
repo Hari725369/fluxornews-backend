@@ -31,6 +31,7 @@ router.put('/', protect, requireSuperAdmin, async (req, res, next) => {
         // Explicitly update fields to ensure Mongoose detects changes
         if (req.body.homeLayout) config.homeLayout = req.body.homeLayout;
         if (req.body.branding) config.branding = req.body.branding;
+        if (req.body.siteIdentity) config.siteIdentity = req.body.siteIdentity;
 
         // Handle features update
         if (req.body.features) {

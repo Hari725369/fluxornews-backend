@@ -11,7 +11,22 @@ const siteConfigSchema = new mongoose.Schema({
         },
         // We can add more layout settings here later
     },
-    // Branding
+    // Branding & Identity
+    siteIdentity: {
+        siteName: {
+            type: String,
+            default: 'Fluxor News'
+        },
+        siteDescription: {
+            type: String,
+            default: 'Stay informed with the latest global news.'
+        },
+        siteKeywords: {
+            type: String,
+            default: 'news, breaking news, politics, world updates'
+        }
+    },
+    // Visual Branding
     branding: {
         logo: String,
         favicon: String,

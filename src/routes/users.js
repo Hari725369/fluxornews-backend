@@ -415,24 +415,31 @@ router.get('/:id/stats', protect, async (req, res, next) => {
         // Reset time part of startDate to start of day
         startDate.setHours(0, 0, 0, 0);
 
+        // Determine filter (User vs Global)
+        let matchQuery = { isDeleted: false };
+        if (req.query.global === 'true' && req.user.role === 'superadmin') {
+            // No author filter -> Global stats
+        } else {
+            matchQuery.author = new mongoose.Types.ObjectId(userId);
+        }
+
         const [today, thisWeek, thisMonth, total, viewsData, statusBreakdown, dailyTrend] = await Promise.all([
-            Article.countDocuments({ author: userId, createdAt: { $gte: startOfDay }, isDeleted: false }),
-            Article.countDocuments({ author: userId, createdAt: { $gte: startOfWeek }, isDeleted: false }),
-            Article.countDocuments({ author: userId, createdAt: { $gte: startOfMonth }, isDeleted: false }),
-            Article.countDocuments({ author: userId, isDeleted: false }),
+            Article.countDocuments({ ...matchQuery, createdAt: { $gte: startOfDay } }),
+            Article.countDocuments({ ...matchQuery, createdAt: { $gte: startOfWeek } }),
+            Article.countDocuments({ ...matchQuery, createdAt: { $gte: startOfMonth } }),
+            Article.countDocuments(matchQuery),
             Article.aggregate([
-                { $match: { author: new mongoose.Types.ObjectId(userId), isDeleted: false } },
+                { $match: matchQuery },
                 { $group: { _id: null, totalViews: { $sum: '$views' } } }
             ]),
             Article.aggregate([
-                { $match: { author: new mongoose.Types.ObjectId(userId), isDeleted: false } },
+                { $match: matchQuery },
                 { $group: { _id: '$status', count: { $sum: 1 } } }
             ]),
             Article.aggregate([
                 {
                     $match: {
-                        author: new mongoose.Types.ObjectId(userId),
-                        isDeleted: false,
+                        ...matchQuery,
                         createdAt: { $gte: startDate, $lte: endDate }
                     }
                 },
